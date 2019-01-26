@@ -7,6 +7,7 @@
 #include <Events.h>
 #include <Fonts.h>
 #include <NumberFormatting.h>
+#include <Devices.h>
 #include "screen.h"
 #include "font.h"
 #include "protocol.h"
@@ -57,6 +58,10 @@ void screen_init(void)
   InitFonts();
   InitWindows();
   InitMenus();
+
+  SetMenuBar(GetNewMBar(128));
+  AppendResMenu(GetMenu(128),'DRVR');
+  DrawMenuBar();
   
   screenRect=qd.screenBits.bounds;
   SetRect(&screenRect,screenRect.left+5,screenRect.top+45,screenRect.left+517,screenRect.top+557);
@@ -80,13 +85,81 @@ void screen_init(void)
 }
 
 /**
+ * screen_update_menus() - Update menu state
+ */
+void screen_update_menus(void)
+{
+}
+
+/**
+ * screen_menu_command(menuCommand) - Do menu command.
+ */
+void screen_menu_command(long menu_command)
+{
+  Str255 str;
+  WindowRef w;
+  short menuID = menu_command >> 16;
+  short menuItem = menu_command & 0xFFFF;
+  if(menuID == 128)
+    {
+      if(menuItem == 1)
+	{
+	}
+      else
+        {
+	  GetMenuItemText(GetMenu(128), menuItem, str);
+	  OpenDeskAcc(str);
+        }
+    }
+  else if(menuID == 129)
+    {
+      switch(menuItem)
+        {
+
+	case 1:
+	  ExitToShell();
+	  break;
+        }
+    }
+  
+  HiliteMenu(0);
+}
+
+/**
  * screen_main(void)
  */
 void screen_main(void)
 {
+  WindowRef currentWindow;
   SystemTask();
   if (GetNextEvent(everyEvent,&theEvent))
     {
+      switch(theEvent.what)
+	{
+	case mouseDown:
+	  switch(FindWindow(theEvent.where,&currentWindow))
+	    {
+	    case inGoAway:
+	      if (TrackGoAway(currentWindow,theEvent.where))
+		DisposeWindow(currentWindow);
+	      break;
+	    case inDrag:
+	      DragWindow(currentWindow,theEvent.where,&qd.screenBits.bounds);
+	      break;
+	    case inMenuBar:
+	      screen_update_menus();
+	      screen_menu_command(MenuSelect(theEvent.where));
+	      break;
+	    case inContent:
+	      SelectWindow(currentWindow);
+	      break;
+	    case inSysWindow:
+	      SystemClick(&theEvent,currentWindow);
+	      break;
+	    }
+	case updateEvt:
+	  break;
+	}
     }
 }
 

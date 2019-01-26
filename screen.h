@@ -18,6 +18,17 @@
 void screen_init(void);
 
 /**
+ * screen_update_menus() - Update menu state
+ */
+void screen_update_menus(void);
+
+/**
+ * screen_menu_command(menuCommand) - Do menu command.
+ */
+void screen_menu_command(long menu_command);
+
+
+/**
  * screen_main(void)
  */
 void screen_main(void);
