@@ -1,6 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <Quickdraw.h>
+#include <MacMemory.h>
+#include <Sound.h>
+#include <Events.h>
+#include <Fonts.h>
+#include <NumberFormatting.h>
 #include "screen.h"
 #include "font.h"
 #include "protocol.h"
@@ -34,12 +40,54 @@ padRGB current_foreground_rgb_backup={255,255,255};
 padRGB current_background_rgb_backup={0,0,0};
 int highest_color_index_backup;
 unsigned char help_active=false;
+Rect screenRect;
+BitMap globalBitmap;
+WindowPtr win;
+EventRecord theEvent;
+unsigned char is_mono=true;
+SysEnvRec environment;
+Handle menuBar;
 
 /**
  * screen_init() - Set up the screen
  */
 void screen_init(void)
 {
+  InitGraf(&qd.thePort);
+  InitFonts();
+  InitWindows();
+  InitMenus();
+  
+  screenRect=qd.screenBits.bounds;
+  SetRect(&screenRect,screenRect.left+5,screenRect.top+45,screenRect.left+517,screenRect.top+557);
+
+  if (SysEnvirons(1,&environment) == noErr)
+    is_mono=!environment.hasColorQD;
+  else
+    is_mono=true;
+  
+  if (is_mono==true)
+    {
+      NewWindow(NULL, &screenRect, "\pPLATOTerm", true, 0, (WindowPtr)-1, false, 0);
+    }
+  else
+    {
+      NewCWindow(NULL, &screenRect, "\pColor PLATOTerm", true, 0, (WindowPtr)-1, false, 0);      
+    }
+
+  SetPort(win);
+  screenRect=win->portRect;
+}
+
+/**
+ * screen_main(void)
+ */
+void screen_main(void)
+{
+  SystemTask();
+  if (GetNextEvent(everyEvent,&theEvent))
+    {
+    }
 }
 
 /**

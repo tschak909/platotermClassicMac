@@ -16,23 +16,24 @@ unsigned char running=false;
 void main(void)
 {
   screen_init();
-  touch_init();
-  help_init();
-  NoEcho=padT;
-  ShowPLATO(splash,sizeof(splash));
-  NoEcho=padF;
-  terminal_initial_position();
-  io_init();
+  /* touch_init(); */
+  /* help_init(); */
+  /* NoEcho=padT; */
+  /* ShowPLATO(splash,sizeof(splash)); */
+  /* NoEcho=padF; */
+  /* terminal_initial_position(); */
+  /* io_init(); */
   running=true;
-  screen_show_dial();
-  screen_greeting();
+  /* screen_show_dial(); */
+  /* screen_greeting(); */
   while (running==true)
     {
-      keyboard_main();
-      io_main();
-      touch_main();
+      screen_main();
+      /* keyboard_main(); */
+      /* io_main(); */
+      /* touch_main(); */
     }
-  io_done();
-  touch_done();
-  screen_done();
+  /* io_done(); */
+  /* touch_done(); */
+  /* screen_done(); */
 }

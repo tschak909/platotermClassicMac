@@ -18,6 +18,11 @@
 void screen_init(void);
 
 /**
+ * screen_main(void)
+ */
+void screen_main(void);
+
+/**
  * screen_update_colors() - Set the terminal colors
  */
 void screen_update_colors(void);
@@ -92,6 +97,11 @@ void screen_background(padRGB* theColor);
  * screen_paint - Called to paint at location.
  */
 void screen_paint(padPt* Coord);
+
+/**
+ * screen_show_status(msg)
+ */
+void screen_show_status(unsigned char* msg);
 
 /**
  * screen_show_baud_rate - Show baud rate
