@@ -70,7 +70,8 @@ void terminal_init(void)
 void terminal_initial_position(void)
 {
   TTYLoc.x=0;
-  TTYLoc.y=239; }
+  TTYLoc.y=239;
+}
 
 /**
  * terminal_set_tty(void) - Switch to TTY mode
@@ -85,12 +86,10 @@ void terminal_set_tty(void)
   Reverse=padF;
   CurMem=M0;
   CurMode=ModeRewrite;
-  /* CurMode=ModeWrite;    /\* For speed reasons. *\/ */
   CharWide=8;
   CharHigh=16;
   TTYLoc.x = 0;        
   TTYLoc.y = 495;      
-  screen_show_status("TTY Mode");
 }
 
 /**
@@ -100,7 +99,6 @@ void terminal_set_plato(void)
 {
   TTY=false;
   screen_clear();
-  screen_show_status("PLATO Mode");
 }
 
 /**

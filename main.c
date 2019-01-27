@@ -19,7 +19,7 @@ void main(void)
   /* touch_init(); */
   /* help_init(); */
   /* NoEcho=padT; */
-  /* ShowPLATO(splash,sizeof(splash)); */
+  ShowPLATO(splash,sizeof(splash));
   /* NoEcho=padF; */
   /* terminal_initial_position(); */
   /* io_init(); */
@@ -29,11 +29,11 @@ void main(void)
   while (running==true)
     {
       screen_main();
-      /* keyboard_main(); */
-      /* io_main(); */
-      /* touch_main(); */
+      keyboard_main();
+      io_main();
+      touch_main();
     }
-  /* io_done(); */
-  /* touch_done(); */
-  /* screen_done(); */
+  io_done();
+  touch_done();
+  screen_done();
 }

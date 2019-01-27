@@ -34,9 +34,14 @@ void screen_menu_command(long menu_command);
 void screen_main(void);
 
 /**
- * screen_update_colors() - Set the terminal colors
+ * screen_scale_x(x) - Scale PLATO X coordinate to screen
  */
-void screen_update_colors(void);
+short screen_scale_x(short x);
+
+/**
+ * screen_scale_y(y) - Scale PLATO Y coordinate to screen
+ */
+short screen_scale_y(short x);
 
 /**
  * screen_wait(void) - Sleep for approx 16.67ms
@@ -57,6 +62,11 @@ void screen_clear_palette(void);
  * screen_clear - Clear the screen
  */
 void screen_clear(void);
+
+/**
+ * screen_current_mode(void) - Return current drawing mode
+ */
+short screen_current_mode(void);
 
 /**
  * screen_current_color(void) - Set the current pen mode
@@ -133,30 +143,6 @@ void screen_show_dial(void);
  * screen_show_dialing_status - Show dialing status.
  */
 void screen_show_dialing_status(void);
-
-/**
- * screen_help_save_palette(void) - Save initial help palette
- * for future restore by screen_help_restore_palette(void)
- */
-void screen_help_save_palette(void);
-
-/**
- * screen_help_restore_palette(void) - Restore the help
- * palette, because the help screen is visible.
- */
-void screen_help_restore_palette(void);
-
-/**
- * screen_save_palette(void) - Save current screen palette state
- * for restore by screen_restore_palette(void)
- */
-void screen_save_palette(void);
-
-/**
- * screen_restore_palette(void) - Restore current screen palette
- * upon return from help screen.
- */
-void screen_restore_palette(void);
 
 /**
  * screen_show_help - SHow help

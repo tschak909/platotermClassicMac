@@ -8,6 +8,7 @@
 #include <Fonts.h>
 #include <NumberFormatting.h>
 #include <Devices.h>
+#include <Palettes.h>
 #include "screen.h"
 #include "font.h"
 #include "protocol.h"
@@ -16,8 +17,6 @@
 #define true 1
 #define false 0
 #define FONTPTR(a) (a<<4)
-#define X(x) (x)
-#define Y(y) (y^0x1FF)
 
 char tmp[64];
 int previousMode;
@@ -27,27 +26,16 @@ padPt TTYLoc;
 padPt statusLoc={0,0};
 unsigned char fontm23[2048];
 extern padBool FastText; /* protocol.c */
-padRGB palette[16];
-unsigned long current_foreground=1;
-unsigned long current_background=0;
-padRGB current_foreground_rgb={255,255,255};
-padRGB current_background_rgb={0,0,0};
-int highest_color_index;
-padRGB palette_help[16];
-padRGB palette_backup[16];
-unsigned long current_foreground_backup=1;
-unsigned long current_background_backup=0;
-padRGB current_foreground_rgb_backup={255,255,255};
-padRGB current_background_rgb_backup={0,0,0};
-int highest_color_index_backup;
-unsigned char help_active=false;
 Rect screenRect;
-BitMap globalBitmap;
+Rect windowRect;
+double verticalScaleFactor;
 WindowPtr win;
 EventRecord theEvent;
 unsigned char is_mono=true;
 SysEnvRec environment;
 Handle menuBar;
+RGBColor current_foreground;
+RGBColor current_background;
 
 /**
  * screen_init() - Set up the screen
@@ -58,14 +46,46 @@ void screen_init(void)
   InitFonts();
   InitWindows();
   InitMenus();
+  InitPalettes();
 
+  current_foreground.red=255;
+  current_foreground.green=255;
+  current_foreground.blue=255;
+  current_background.red=0;
+  current_background.green=0;
+  current_background.blue=0;
+  
   SetMenuBar(GetNewMBar(128));
   AppendResMenu(GetMenu(128),'DRVR');
   DrawMenuBar();
   
   screenRect=qd.screenBits.bounds;
-  SetRect(&screenRect,screenRect.left+5,screenRect.top+45,screenRect.left+517,screenRect.top+557);
+  windowRect.left=0;
+  windowRect.right=511;
 
+  /* Set window size depending on screen size. */
+  if (screenRect.bottom < 468)
+    {
+      /* Mac Plus sized screen */
+      windowRect.top=20;
+      windowRect.bottom=windowRect.top+320;
+    }
+  else if (screenRect.bottom < 532)
+    {
+      /* 640x480 screen */
+      windowRect.top=20;
+      windowRect.bottom=windowRect.top+448;
+    }
+  else
+    {
+      /* Larger */
+      windowRect.top=45;
+      windowRect.bottom=windowRect.top+512;
+      windowRect.left+=5; /* scooch the content area inward slightly. */
+    }
+
+  verticalScaleFactor=((double)windowRect.bottom-(double)windowRect.top)/(double)512.0;
+  
   if (SysEnvirons(1,&environment) == noErr)
     is_mono=!environment.hasColorQD;
   else
@@ -73,15 +93,15 @@ void screen_init(void)
   
   if (is_mono==true)
     {
-      NewWindow(NULL, &screenRect, "\pPLATOTerm", true, 0, (WindowPtr)-1, false, 0);
+      win = NewWindow(NULL, &windowRect, "\pPLATOTerm", true, 0, (WindowPtr)-1, false, 0);
     }
   else
     {
-      NewCWindow(NULL, &screenRect, "\pColor PLATOTerm", true, 0, (WindowPtr)-1, false, 0);      
+      win = NewCWindow(NULL, &windowRect, "\pColor PLATOTerm", true, 0, (WindowPtr)-1, false, 0);      
     }
 
   SetPort(win);
-  screenRect=win->portRect;
+  
 }
 
 /**
@@ -164,26 +184,21 @@ void screen_main(void)
 }
 
 /**
- * screen_update_colors() - Set the terminal colors
+ * screen_scale_x(x) - Scale PLATO X coordinate to screen
  */
-void screen_update_colors(void)
+short screen_scale_x(short x)
 {
+  return (x);
 }
 
 /**
- * screen_clear_palette - Clear the palette
+ * screen_scale_y(y) - Scale PLATO Y coordinate to screen
  */
-void screen_clear_palette(void)
+short screen_scale_y(short y)
 {
-  int i;
-  for (i=0;i<8;i++)
-    {
-      palette[i].red=0;
-      palette[i].green=0;
-      palette[i].blue=0;
-    }
+  y=y^0x1FF;
+  return round(y*verticalScaleFactor);
 }
-
 
 /**
  * screen_wait(void) - Sleep for approx 16.67ms
@@ -204,35 +219,19 @@ void screen_beep(void)
  */
 void screen_clear(void)
 {
+  SetPort(win);
+  EraseRect(&win->portRect);
 }
 
 /**
- * screen_color_matching(color) - return index of matching color, or a new index, 
- * if not found.
+ * screen_color_transform - Map PLATO color to 
+ * QuickDraw color
  */
-unsigned char screen_color_matching(padRGB* theColor)
+void screen_color_transform(padRGB* theColor, RGBColor* newColor)
 {
-  unsigned char i;
-  for (i=0;i<8;i++)
-    {
-      if (i>highest_color_index)
-	{
-	  palette[i].red=theColor->red;
-	  palette[i].green=theColor->green;
-	  palette[i].blue=theColor->blue;
-	  highest_color_index++;
-	  return i;
-	}
-      else
-	{
-	  if ((palette[i].red==theColor->red) && 
-	      (palette[i].green==theColor->green) && 
-	      (palette[i].blue==theColor->blue))
-	    {
-	      return i;
-	    }
-	}
-    }
+  newColor->red = (theColor->red << 8) | ((theColor->red & 0x80)? 0xFF : 0x00);
+  newColor->green = (theColor->green << 8) | ((theColor->green & 0x80)? 0xFF : 0x00);
+  newColor->blue = (theColor->blue << 8) | ((theColor->blue & 0x80)? 0xFF : 0x00);
 }
 
 /**
@@ -240,11 +239,11 @@ unsigned char screen_color_matching(padRGB* theColor)
  */
 void screen_foreground(padRGB* theColor)
 {
-  current_foreground_rgb.red=theColor->red;
-  current_foreground_rgb.green=theColor->green;
-  current_foreground_rgb.blue=theColor->blue;
-  current_foreground=screen_color_matching(theColor);
-  screen_update_colors();
+  if (is_mono)
+    return;
+  screen_color_transform(theColor,&current_foreground);
+  SetPort(win);
+  RGBForeColor(&current_foreground);
 }
 
 /**
@@ -252,22 +251,22 @@ void screen_foreground(padRGB* theColor)
  */
 void screen_background(padRGB* theColor)
 {
-  current_background_rgb.red=theColor->red;
-  current_background_rgb.green=theColor->green;
-  current_background_rgb.blue=theColor->blue;
-  current_background=screen_color_matching(theColor);
-  screen_update_colors();
+  if (is_mono)
+    return;
+  screen_color_transform(theColor,&current_background);
+  SetPort(win);
+  RGBBackColor(&current_background);
 }
 
 /**
- * screen_current_color(void) - Set the current pen mode
+ * screen_current_mode(void) - Return current drawing mode
  */
-int screen_current_color(void)
+short screen_current_mode(void)
 {
-  if (CurMode==ModeInverse || CurMode==ModeErase)
-    return current_background;
+  if ((CurMode == ModeWrite) || (CurMode == ModeRewrite))
+    PenMode(patOr);
   else
-    return current_foreground;
+    PenMode(patBic);
 }
 
 /**
@@ -275,6 +274,14 @@ int screen_current_color(void)
  */
 void screen_block_draw(padPt* Coord1, padPt* Coord2)
 {
+  Rect tmpRect;
+  SetPort(win);
+  tmpRect.left=screen_scale_x(Coord1->x);
+  tmpRect.top=screen_scale_y(Coord1->y);
+  tmpRect.right=screen_scale_x(Coord2->x);
+  tmpRect.bottom=screen_scale_y(Coord2->y);
+  screen_current_mode();
+  PaintRect(&tmpRect);
 }
 
 /**
@@ -282,6 +289,10 @@ void screen_block_draw(padPt* Coord1, padPt* Coord2)
  */
 void screen_dot_draw(padPt* Coord)
 {
+  SetPort(win);
+  MoveTo(screen_scale_x(Coord->x),screen_scale_y(Coord->y));
+  screen_current_mode();
+  Line(0,0);
 }
 
 /**
@@ -289,6 +300,10 @@ void screen_dot_draw(padPt* Coord)
  */
 void screen_line_draw(padPt* Coord1, padPt* Coord2)
 {
+  SetPort(win);
+  MoveTo(screen_scale_x(Coord1->x),screen_scale_y(Coord1->y));
+  screen_current_mode();
+  LineTo(screen_scale_x(Coord2->x),screen_scale_y(Coord2->y));
 }
 
 /**
@@ -311,8 +326,8 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
   unsigned char FONT_SIZE_Y=16;
   unsigned short deltaX=1;
   unsigned short deltaY=1;
-  unsigned char mainColor=1;
-  unsigned char altColor=0;
+  RGBColor mainColor;
+  RGBColor altColor;
   unsigned char *p;
   unsigned char* curfont;
   
@@ -335,27 +350,42 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
       offset=32;      
       break;
     }
+  
+  SetPort(win);
 
   if (CurMode==ModeRewrite)
     {
-      altColor=current_background;
+      altColor.red=current_background.red;
+      altColor.green=current_background.green;
+      altColor.blue=current_background.blue;
     }
   else if (CurMode==ModeInverse)
     {
-      altColor=current_foreground;
+      altColor.red=current_foreground.red;
+      altColor.green=current_foreground.green;
+      altColor.blue=current_foreground.blue;
+
     }
   
   if (CurMode==ModeErase || CurMode==ModeInverse)
-    mainColor=current_background;
+    {
+      mainColor.red=current_background.red;
+      mainColor.green=current_background.green;
+      mainColor.blue=current_background.blue;
+    }
   else
-    mainColor=current_foreground;
+    {
+      mainColor.red=current_foreground.red;
+      mainColor.green=current_foreground.green;
+      mainColor.blue=current_foreground.blue;
+    }
 
-  x=X(Coord->x&0x1FF);
+  x=screen_scale_x(Coord->x&0x1FF);
 
   if (ModeBold)
-    y=Y((Coord->y)+30&0x1FF);
+    y=screen_scale_y((Coord->y)+30&0x1FF);
   else
-    y=Y((Coord->y)+15&0x1FF);
+    y=screen_scale_y((Coord->y)+15&0x1FF);
   
   if (FastText==padF)
     {
@@ -379,7 +409,9 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
   	    {
   	      if (b<0) /* check sign bit. */
 		{
-		  /* pset(x,y,mainColor); */
+		  RGBForeColor(&mainColor);
+		  MoveTo(x,y);
+		  Line(0,0);
 		}
 
 	      ++x;
@@ -445,11 +477,15 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
 		{
 		  if (ModeBold)
 		    {
-		      /* pset(*px+1,*py,mainColor); */
-		      /* pset(*px,*py+1,mainColor); */
-		      /* pset(*px+1,*py+1,mainColor); */
+		      RGBForeColor(&mainColor);
+		      MoveTo(*px+1,*py);
+		      Line(0,0);
+		      MoveTo(*px,*py+1);
+		      Line(0,0);
+		      MoveTo(*px+1,*py+1);
+		      Line(0,0);
 		    }
-		  /* pset(*px,*py,mainColor); */
+		  MoveTo(*px,*py);
 		}
 	      else
 		{
@@ -457,11 +493,12 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
 		    {
 		      if (ModeBold)
 			{
-			  /* pset(*px+1,*py,altColor); */
-			  /* pset(*px,*py+1,altColor); */
-			  /* pset(*px+1,*py+1,altColor); */
+			  RGBForeColor(&altColor);
+			  MoveTo(*px+1,*py);
+			  MoveTo(*px,*py+1);
+			  MoveTo(*px+1,*py+1);
 			}
-		      /* pset(*px,*py,altColor);  */
+		      MoveTo(*px,*py); 
 		    }
 		}
 
@@ -480,7 +517,7 @@ void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
     }
 
   return;
-  
+ 
 }
 
 /**
@@ -526,189 +563,96 @@ void screen_tty_char(padByte theChar)
 }
 
 /**
+ * is pixel set to specified color?
+ */
+unsigned char screen_is_pixel_color(int x, int y, RGBColor* color)
+{
+  RGBColor currentPixelColor;
+  GetCPixel(x,y,&currentPixelColor);
+  return ((currentPixelColor.red==color->red) &&
+	  (currentPixelColor.green==color->green) &&
+	  (currentPixelColor.blue==color->blue));
+}
+
+/**
+ * Are two pixel colors the same?
+ */
+unsigned char screen_pixel_colors_same(RGBColor* firstColor, RGBColor* secondColor)
+{
+  return ((firstColor->red==secondColor->red) &&
+	  (firstColor->green==secondColor->green) &&
+	  (firstColor->blue==secondColor->blue));
+}
+
+/**
  * screen_paint - Called to paint at location.
  */
 void screen_paint(padPt* Coord)
 {
-}
+  static unsigned short xStack[512];
+  static unsigned char yStack[512];
+  int x=screen_scale_x(Coord->x);
+  int y=screen_scale_y(Coord->y);
+  unsigned char stackentry = 1;
+  unsigned short spanAbove, spanBelow;
+  RGBColor oldColor;
+  GetCPixel(x,y,&oldColor);
 
-/**
- * screen_clear_status(void)
- * Clear status area
- */
-void screen_clear_status(void)
-{
-}
-
-/**
- * screen_show_status(msg)
- */
-void screen_show_status(unsigned char* msg)
-{
-  int previous_foreground=current_foreground;
-  int previous_background=current_background;
-  padPt coord={0,0};
-  screen_clear_status();
-  current_foreground=0;
-  current_background=1;
-  screen_char_draw(&coord,msg,strlen(msg));
-  current_foreground=previous_foreground;
-  current_background=previous_background;
-}
-
-/**
- * screen_show_baud_rate - Show baud rate
- */
-void screen_show_baud_rate(int baud)
-{
-  sprintf(tmp,"%d Baud",baud);
-  screen_show_status(tmp);
-}
-
-/**
- * screen_show_dial - Show dial in TTY mode
- */
-void screen_show_dial(void)
-{
-}
-
-/**
- * screen_show_hang_up - Show hang-up message
- */
-void screen_show_hang_up(void)
-{
-  screen_show_status("Hanging up...");
-}
-
-/**
- * screen_show_dialing_status - Show dialing status.
- */
-void screen_show_dialing_status(void)
-{
-  screen_show_status("Dialing...");
-}
-
-/**
- * screen_help_save_palette(void) - Save initial help palette
- * for future restore by screen_help_restore_palette(void)
- */
-void screen_help_save_palette(void)
-{
-  int i;
-  for (i=0;i<16;i++)
-    {
-      palette_help[i].red=palette[i].red;
-      palette_help[i].green=palette[i].green;
-      palette_help[i].blue=palette[i].blue;
-    }
-}
-
-/**
- * screen_help_restore_palette(void) - Restore the help
- * palette, because the help screen is visible.
- */
-void screen_help_restore_palette(void)
-{
-  int i;
-  for (i=0;i<16;i++)
-    {
-      palette[i].red=palette_help[i].red;
-      palette[i].green=palette_help[i].green;
-      palette[i].blue=palette_help[i].blue;
-    }
-  screen_update_colors();
-}
-
-/**
- * screen_save_palette(void) - Save current screen palette state
- * for restore by screen_restore_palette(void)
- */
-void screen_save_palette(void)
-{
-  int i;
-
-  current_foreground_backup=current_foreground;
-  current_background_backup=current_background;
-  current_foreground_rgb_backup.red=current_foreground_rgb.red;
-  current_foreground_rgb_backup.green=current_foreground_rgb.green;
-  current_foreground_rgb_backup.blue=current_foreground_rgb.blue;
-  current_background_rgb_backup.red=current_background_rgb.red;
-  current_background_rgb_backup.green=current_background_rgb.green;
-  current_background_rgb_backup.blue=current_background_rgb.blue;
-  highest_color_index_backup=highest_color_index;
+  if ((oldColor.red == current_foreground.red) &&
+      (oldColor.green == current_foreground.green) &&
+      (oldColor.blue == current_foreground.blue))
+    return;
   
-  for (i=0;i<16;i++)
+  do
     {
-      palette_backup[i].red=palette[i].red;
-      palette_backup[i].green=palette[i].green;
-      palette_backup[i].blue=palette[i].blue;
+      unsigned short startx;
+      while (x > 0 && screen_is_pixel_color(x-1,y,&oldColor))
+        --x;
+
+      spanAbove = spanBelow = false;
+      startx=x;
+
+      while(screen_is_pixel_color(x,y,&oldColor))
+        {
+          if (y < (512))
+            {
+              RGBColor belowColor;
+  	      GetCPixel(x, y+1,&belowColor);
+              if (!spanBelow  && screen_pixel_colors_same(&belowColor,&oldColor))
+                {
+                  xStack[stackentry]  = x;
+                  yStack[stackentry]  = y+1;
+                  ++stackentry;
+                  spanBelow = true;
+                }
+              else if (spanBelow && !screen_pixel_colors_same(&belowColor,&oldColor))
+                spanBelow = false;
+            }
+
+          if (y > 0)
+            {
+              RGBColor aboveColor;
+  	      GetCPixel(x, y-1,&aboveColor);
+              if (!spanAbove  && screen_pixel_colors_same(&aboveColor,&oldColor))
+                {
+                  xStack[stackentry]  = x;
+                  yStack[stackentry]  = y-1;
+                  ++stackentry;
+                  spanAbove = true;
+                }
+              else if (spanAbove && !screen_pixel_colors_same(&aboveColor,&oldColor))
+                spanAbove = false;
+            }
+
+          ++x;
+        }
+      MoveTo(startx,y);
+      LineTo(x-1,y);
+      --stackentry;
+      x = xStack[stackentry];
+      y = yStack[stackentry];
     }
-  
-}
-
-/**
- * screen_restore_palette(void) - Restore current screen palette
- * upon return from help screen.
- */
-void screen_restore_palette(void)
-{
-  int i;
-
-  current_foreground=current_foreground_backup;
-  current_background=current_background_backup;
-  current_foreground_rgb.red=current_foreground_rgb_backup.red;
-  current_foreground_rgb.green=current_foreground_rgb_backup.green;
-  current_foreground_rgb.blue=current_foreground_rgb_backup.blue;
-  current_background_rgb.red=current_background_rgb_backup.red;
-  current_background_rgb.green=current_background_rgb_backup.green;
-  current_background_rgb.blue=current_background_rgb_backup.blue;
-  highest_color_index=highest_color_index_backup;
-  
-  for (i=0;i<16;i++)
-    {
-      palette[i].red=palette_backup[i].red;
-      palette[i].green=palette_backup[i].green;
-      palette[i].blue=palette_backup[i].blue;
-    }
-
-  screen_update_colors();
-  
-}
-
-/**
- * screen_show_help - SHow help
- */
-void screen_show_help(void)
-{
-}
-
-/**
- * screen_trace_status - Show trace status
- */
-void screen_trace_status(const char* status)
-{
-  char tmp_status_msg[13];
-  sprintf(tmp_status_msg,"TRACE: %s",status);
-  screen_show_status(tmp_status_msg);
-}
-
-/**
- * screen_help_mode_status(void)
- * Put help mode status at bottom of help screen
- */
-void screen_help_mode_status(void)
-{
-  screen_show_status("HELP Mode - Press any key to return to terminal.");
-}
-
-/**
- * screen_greeting(void)
- * show initial greeting
- */
-void screen_greeting(void)
-{
-  /* sprintf(tmp,"v1.0 Ready - %5d baud - Press HELP for keys.",config.baud); */
-  screen_show_status(tmp);
+  while (stackentry);
 }
 
 /**
