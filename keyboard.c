@@ -14,13 +14,36 @@ extern char tmp[64];
 
 void keyboard_out(int platoKey)
 {
+  if (platoKey==0xff)
+    {
+      return;
+    }
+  
+  if (platoKey>0x7F)
+    {
+      Key(ACCESS);
+      Key(ACCESS_KEYS[platoKey-0x80]);
+      return;
+    }
+  Key(platoKey);
+  return;
 }
 
-void keyboard_main(void)
+void keyboard_main(EventRecord* e)
 {
+  if (TTY)
+    {
+      keyboard_out_tty(e->message&0x7F);
+    }
+  else
+    {
+
+    }
 }
 
-void keyboard_out_tty(int ch)
+void keyboard_out_tty(padByte ch)
 {
+  ShowPLATO(&ch,1);
+  io_send_byte(ch);
 }
 

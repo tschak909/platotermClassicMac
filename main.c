@@ -13,27 +13,28 @@
 unsigned char already_started=false;
 unsigned char running=false;
 
-void main(void)
+void done(void)
 {
-  screen_init();
-  /* touch_init(); */
-  /* help_init(); */
-  /* NoEcho=padT; */
-  ShowPLATO(splash,sizeof(splash));
-  /* NoEcho=padF; */
-  /* terminal_initial_position(); */
-  /* io_init(); */
-  running=true;
-  /* screen_show_dial(); */
-  /* screen_greeting(); */
-  while (running==true)
-    {
-      screen_main();
-      keyboard_main();
-      io_main();
-      touch_main();
-    }
   io_done();
   touch_done();
   screen_done();
 }
+
+void main(void)
+{
+  screen_init();
+  touch_init();
+  help_init();
+  NoEcho=padT;
+  ShowPLATO(splash,sizeof(splash));
+  NoEcho=padF;
+  terminal_initial_position();
+  io_init();
+  running=true;
+  while (running==true)
+    {
+      screen_main(); /* keyboard_main() and touch_main() are called in here. */
+      io_main();
+    }
+}
+

@@ -13,6 +13,7 @@
 #include "font.h"
 #include "protocol.h"
 #include "io.h"
+#include "keyboard.h"
 
 #define true 1
 #define false 0
@@ -177,7 +178,12 @@ void screen_main(void)
 	      SystemClick(&theEvent,currentWindow);
 	      break;
 	    }
+	case keyDown:
+	case autoKey:
+	  keyboard_main(&theEvent);
+	  break;
 	case updateEvt:
+	  /* To be implemented, somehow... */
 	  break;
 	}
     }
