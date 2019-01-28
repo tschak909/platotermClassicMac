@@ -25,13 +25,13 @@ void io_init(void)
     done();
 
   handshake.fXOn=0;
-  handshake.fCTS=1;
+  handshake.fCTS=0;
   handshake.errs=0;
   handshake.evts=0;
   handshake.fInX=0;
 
   SerHShake(driverIn,&handshake);
-  SerReset(driverOut,baud19200+stop10+noParity+data8);
+  SerReset(driverOut,baud1200+stop10+noParity+data8);
   serial_buffer=NewPtr(SERIAL_BUFFER_SIZE);
 
   if (serial_buffer!=noErr)
