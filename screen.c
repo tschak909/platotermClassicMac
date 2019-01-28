@@ -83,6 +83,7 @@ void screen_init(void)
       windowRect.top=45;
       windowRect.bottom=windowRect.top+512;
       windowRect.left+=5; /* scooch the content area inward slightly. */
+      windowRect.right+=5; /* scooch */
     }
 
   verticalScaleFactor=((double)windowRect.bottom-(double)windowRect.top)/(double)512.0;
@@ -596,7 +597,7 @@ unsigned char screen_pixel_colors_same(RGBColor* firstColor, RGBColor* secondCol
 void screen_paint(padPt* Coord)
 {
   static unsigned short xStack[512];
-  static unsigned char yStack[512];
+  static unsigned short yStack[512];
   int x=screen_scale_x(Coord->x);
   int y=screen_scale_y(Coord->y);
   unsigned char stackentry = 1;

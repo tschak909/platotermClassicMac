@@ -31,19 +31,27 @@ void keyboard_out(int platoKey)
 
 void keyboard_main(EventRecord* e)
 {
+  unsigned char key;
+  key=e->message&0x7F;
   if (TTY)
     {
-      keyboard_out_tty(e->message&0x7F);
+      keyboard_out_tty(key);
     }
   else
     {
-
+      if (e->modifiers & 4096) /* CTRL key*/
+	{
+	  if (e->modifiers & 512)
+	    key|=0x80;
+	  keyboard_out(ctrl_key_to_pkey[key]);
+	}
+      else
+	keyboard_out(key_to_pkey[key]);
     }
 }
 
 void keyboard_out_tty(padByte ch)
 {
-  ShowPLATO(&ch,1);
   io_send_byte(ch);
 }
 
