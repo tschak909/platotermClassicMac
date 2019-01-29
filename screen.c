@@ -37,6 +37,8 @@ SysEnvRec environment;
 Handle menuBar;
 RGBColor current_foreground;
 RGBColor current_background;
+int windowWidth;
+int windowHeight;
 
 /**
  * screen_init() - Set up the screen
@@ -86,6 +88,8 @@ void screen_init(void)
       windowRect.right+=5; /* scooch */
     }
 
+  windowWidth=windowRect.right-windowRect.left;
+  windowHeight=windowRect.bottom-windowRect.top;
   verticalScaleFactor=((double)windowRect.bottom-(double)windowRect.top)/(double)512.0;
   
   if (SysEnvirons(1,&environment) == noErr)
@@ -318,213 +322,137 @@ void screen_line_draw(padPt* Coord1, padPt* Coord2)
  */
 void screen_char_draw(padPt* Coord, unsigned char* ch, unsigned char count)
 {
-  short offset; /* due to negative offsets */
-  unsigned short x;      /* Current X and Y coordinates */
-  unsigned short y;
-  unsigned short* px;   /* Pointers to X and Y coordinates used for actual plotting */
-  unsigned short* py;
-  unsigned char i; /* current character counter */
-  unsigned char a; /* current character byte */
-  unsigned char j,k; /* loop counters */
-  char b; /* current character row bit signed */
-  unsigned char width=8;
-  unsigned char height=16;
-  unsigned char FONT_SIZE_X=8;
-  unsigned char FONT_SIZE_Y=16;
-  unsigned short deltaX=1;
-  unsigned short deltaY=1;
-  RGBColor mainColor;
-  RGBColor altColor;
-  unsigned char *p;
-  unsigned char* curfont;
-  
-  switch(CurMem)
-    {
-    case M0:
-      curfont=font;
-      offset=-32;
-      break;
-    case M1:
-      curfont=font;
-      offset=64;
-      break;
-    case M2:
-      curfont=fontm23;
-      offset=-32;
-      break;
-    case M3:
-      curfont=fontm23;
-      offset=32;      
-      break;
-    }
+  BitMap drawMap;
+  char drawBits[64][16];
+  char* chPt;
+  char* drawFrom;
+  char* drawTo;
+  int offset;
+  short Mode;
+  Point charSize;
+  Rect fromRect;
+  Rect toRect;
+  int chNum;
+  int direction;
+  int row;
   
   SetPort(win);
 
-  if (CurMode==ModeRewrite)
-    {
-      altColor.red=current_background.red;
-      altColor.green=current_background.green;
-      altColor.blue=current_background.blue;
-    }
-  else if (CurMode==ModeInverse)
-    {
-      altColor.red=current_foreground.red;
-      altColor.green=current_foreground.green;
-      altColor.blue=current_foreground.blue;
+  /* Set up staging bitmap */
+  drawMap.baseAddr=&drawBits[0][0];
+  drawMap.rowBytes=64;
+  drawMap.bounds.top=0;
+  drawMap.bounds.bottom=16;
+  drawMap.bounds.left=0;
+  drawMap.bounds.right=512;
 
-    }
-  
-  if (CurMode==ModeErase || CurMode==ModeInverse)
+  /* Select appropriate font memory */
+  switch (CurMem)
     {
-      mainColor.red=current_background.red;
-      mainColor.green=current_background.green;
-      mainColor.blue=current_background.blue;
-    }
-  else
-    {
-      mainColor.red=current_foreground.red;
-      mainColor.green=current_foreground.green;
-      mainColor.blue=current_foreground.blue;
+    case M0:
+      chPt = font;
+      offset = -32;
+      break;
+    case M1:
+      chPt = font;
+      offset = 64;
+      break;
+    case M2:
+      chPt = fontm23;
+      offset = -32;
+      break;
+    case M3:
+      chPt = fontm23;
+      offset = 32;
+      break;
     }
 
-  x=screen_scale_x(Coord->x&0x1FF);
+  /* Select appropriate bitmap transfer mode */
+  switch(CurMode)
+    {
+    case ModeWrite:
+      Mode = srcOr;
+      break;
+    case ModeRewrite:
+      Mode = srcCopy;
+      break;
+    case ModeErase:
+      Mode = srcBic;
+      break;
+    case ModeInverse:
+      Mode = notSrcCopy;
+      break;
+    }
+
+  /* Set up character size */
+  charSize.h = CharWide;
+  charSize.v = CharHigh;
 
   if (ModeBold)
-    y=screen_scale_y((Coord->y)+30&0x1FF);
-  else
-    y=screen_scale_y((Coord->y)+15&0x1FF);
-  
-  if (FastText==padF)
     {
-      goto chardraw_with_fries;
+      charSize.h<<=1;
+      charSize.v<<=1;
     }
 
-  /* the diet chardraw routine - fast text output. */
-  
-  for (i=0;i<count;++i)
+  /* Set up transfer rects */
+  fromRect.top=0;
+  fromRect.bottom=16;
+  fromRect.left=0;
+  fromRect.right = count << 3;
+
+  toRect.bottom = screen_scale_y(Coord->y+1);
+  toRect.top = toRect.bottom - charSize.v;
+  if (Reverse)
     {
-      a=*ch;
-      ++ch;
-      a+=offset;
-      p=&curfont[FONTPTR(a)];
-      
-      for (j=0;j<FONT_SIZE_Y;++j)
-  	{
-  	  b=*p;
-	  
-  	  for (k=0;k<FONT_SIZE_X;++k)
-  	    {
-  	      if (b<0) /* check sign bit. */
-		{
-		  RGBForeColor(&mainColor);
-		  MoveTo(x,y);
-		  Line(0,0);
-		}
-
-	      ++x;
-  	      b<<=1;
-  	    }
-
-	  ++y;
-	  x-=width;
-	  ++p;
-  	}
-
-      x+=width;
-      y-=height;
+      chNum = count - 1;
+      direction = -1;
+      toRect.right = screen_scale_x(Coord->x);
+      toRect.left = toRect.right - charSize.h * count;
+    }
+  else /* forward */
+    {
+      chNum=0;
+      direction = 1;
+      toRect.left = screen_scale_x(Coord->x);
+      toRect.right = toRect.left + charSize.h * count;
     }
 
-  return;
-
- chardraw_with_fries:
-  if (Rotate)
+  /* plot the bitmap. */
+  while (count--)
     {
-      deltaX=-abs(deltaX);
-      width=-abs(width);
-      px=&y;
-      py=&x;
-    }
-    else
-    {
-      px=&x;
-      py=&y;
-    }
-  
-  if (ModeBold)
-    {
-      deltaX = deltaY = 2;
-      width<<=1;
-      height<<=1;
-    }
-  
-  for (i=0;i<count;++i)
-    {
-      a=*ch;
-      ++ch;
-      a+=offset;
-      p=&curfont[FONTPTR(a)];
-      for (j=0;j<FONT_SIZE_Y;++j)
-  	{
-  	  b=*p;
-
-	  if (Rotate)
-	    {
-	      px=&y;
-	      py=&x;
-	    }
-	  else
-	    {
-	      px=&x;
-	      py=&y;
-	    }
-
-  	  for (k=0;k<FONT_SIZE_X;++k)
-  	    {
-  	      if (b<0) /* check sign bit. */
-		{
-		  if (ModeBold)
-		    {
-		      RGBForeColor(&mainColor);
-		      MoveTo(*px+1,*py);
-		      Line(0,0);
-		      MoveTo(*px,*py+1);
-		      Line(0,0);
-		      MoveTo(*px+1,*py+1);
-		      Line(0,0);
-		    }
-		  MoveTo(*px,*py);
-		}
-	      else
-		{
-		  if (CurMode==ModeInverse || CurMode==ModeRewrite)
-		    {
-		      if (ModeBold)
-			{
-			  RGBForeColor(&altColor);
-			  MoveTo(*px+1,*py);
-			  MoveTo(*px,*py+1);
-			  MoveTo(*px+1,*py+1);
-			}
-		      MoveTo(*px,*py); 
-		    }
-		}
-
-	      x += deltaX;
-  	      b<<=1;
-  	    }
-
-	  y+=deltaY;
-	  x-=width;
-	  ++p;
-  	}
-
-      Coord->x+=width;
-      x+=width;
-      y-=height;
+      drawFrom = chPt + ((*ch++ + offset) << 4);
+      drawTo = &drawBits[0][chNum];
+      chNum+=direction;
+      for (row=1; row <= 16; row++)
+	{
+	  *drawTo = *drawFrom++;
+	  drawTo += 64;
+	}
     }
 
-  return;
- 
+  /* Finally, blit it to the window. */
+  CopyBits(&drawMap, &(win->portBits), &fromRect, &toRect, Mode, NULL);
+
+  if (toRect.top < 0)
+    {
+      toRect.top = windowHeight;
+      toRect.bottom+=windowHeight;
+      CopyBits(&drawMap, &(win->portBits), &fromRect, &toRect, Mode, NULL);
+    }
+
+  if (toRect.right > windowWidth)
+    {
+      toRect.right -= windowWidth;
+      toRect.left -= windowWidth;
+      CopyBits(&drawMap, &(win->portBits), &fromRect, &toRect, Mode, NULL);
+
+      if (toRect.bottom > windowHeight)
+	{
+	  toRect.bottom -= windowHeight;
+	  toRect.top -= windowHeight;
+	  CopyBits(&drawMap, &(win->portBits), &fromRect, &toRect, Mode, NULL);
+	}
+    }
 }
 
 /**
