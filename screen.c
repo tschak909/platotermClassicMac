@@ -39,6 +39,31 @@ RGBColor current_foreground;
 RGBColor current_background;
 int windowWidth;
 int windowHeight;
+static AEEventHandlerUPP        oappUPP, odocUPP, pdocUPP, quitUPP;
+extern unsigned char running;
+
+/* Apple Event Handler callbacks */
+
+static pascal OSErr     AEOpenApplication(const AppleEvent *theAE, AppleEvent *reply, UInt32 refCon)
+{
+  return noErr;
+}
+
+static pascal OSErr     AEOpenDocuments(const AppleEvent *theAE, AppleEvent *reply, UInt32 refCon)
+{
+  return errAEEventNotHandled;
+}
+
+static pascal OSErr     AEPrintDocuments(const AppleEvent *theAE, AppleEvent *reply, UInt32 refCon)
+{
+  return errAEEventNotHandled;
+}
+
+static pascal OSErr     AEQuitApplication(const AppleEvent *theAE, AppleEvent *reply, UInt32 refCon)
+{
+  running=false;
+  return noErr;
+}
 
 /**
  * screen_init() - Set up the screen
@@ -50,7 +75,20 @@ void screen_init(void)
   InitWindows();
   InitMenus();
   InitPalettes();
+  TEInit();
+  InitDialogs(NULL);
+  InitCursor();
 
+  /* Attach Apple Event handler callbacks */
+  oappUPP = NewAEEventHandlerUPP(AEOpenApplication);
+  AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, oappUPP, 0L, false);
+  odocUPP = NewAEEventHandlerUPP(AEOpenDocuments);
+  AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, odocUPP, 0L, false);
+  pdocUPP = NewAEEventHandlerUPP(AEPrintDocuments);
+  AEInstallEventHandler(kCoreEventClass, kAEPrintDocuments, pdocUPP, 0L, false);
+  quitUPP = NewAEEventHandlerUPP(AEQuitApplication);
+  AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, quitUPP, 0L, false);
+  
   current_foreground.red=255;
   current_foreground.green=255;
   current_foreground.blue=255;
@@ -190,7 +228,10 @@ void screen_main(void)
 	  keyboard_main(&theEvent);
 	  break;
 	case updateEvt:
-	  /* To be implemented, somehow... */
+	  BeginUpdate((WindowPtr)theEvent.message);
+	  EndUpdate((WindowPtr)theEvent.message);
+	case kHighLevelEvent:
+	  AEProcessAppleEvent(&theEvent);
 	  break;
 	}
     }
