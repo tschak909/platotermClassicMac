@@ -72,12 +72,14 @@ void screen_init(void)
       /* Mac Plus sized screen */
       windowRect.top=20;
       windowRect.bottom=windowRect.top+320;
+      CharHigh=10;
     }
   else if (screenRect.bottom < 532)
     {
       /* 640x480 screen */
       windowRect.top=20;
       windowRect.bottom=windowRect.top+448;
+      CharHigh=14;
     }
   else
     {
@@ -531,6 +533,10 @@ void screen_paint(padPt* Coord)
   unsigned char stackentry = 1;
   unsigned short spanAbove, spanBelow;
   RGBColor oldColor;
+  
+  if (is_mono==1)
+    return;
+
   GetCPixel(x,y,&oldColor);
 
   if ((oldColor.red == current_foreground.red) &&
