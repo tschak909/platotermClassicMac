@@ -9,6 +9,7 @@
 #include <NumberFormatting.h>
 #include <Devices.h>
 #include <Palettes.h>
+#include <Gestalt.h>
 #include "screen.h"
 #include "font.h"
 #include "protocol.h"
@@ -41,6 +42,7 @@ int windowWidth;
 int windowHeight;
 static AEEventHandlerUPP        oappUPP, odocUPP, pdocUPP, quitUPP;
 extern unsigned char running;
+static long sysv;
 
 /* Apple Event Handler callbacks */
 
@@ -80,14 +82,18 @@ void screen_init(void)
   InitCursor();
 
   /* Attach Apple Event handler callbacks */
-  oappUPP = NewAEEventHandlerUPP(AEOpenApplication);
-  AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, oappUPP, 0L, false);
-  odocUPP = NewAEEventHandlerUPP(AEOpenDocuments);
-  AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, odocUPP, 0L, false);
-  pdocUPP = NewAEEventHandlerUPP(AEPrintDocuments);
-  AEInstallEventHandler(kCoreEventClass, kAEPrintDocuments, pdocUPP, 0L, false);
-  quitUPP = NewAEEventHandlerUPP(AEQuitApplication);
-  AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, quitUPP, 0L, false);
+  Gestalt('sysv',&sysv);
+  if (sysv>0x6FF)
+    {
+      oappUPP = NewAEEventHandlerUPP(AEOpenApplication);
+      AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, oappUPP, 0L, false);
+      odocUPP = NewAEEventHandlerUPP(AEOpenDocuments);
+      AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, odocUPP, 0L, false);
+      pdocUPP = NewAEEventHandlerUPP(AEPrintDocuments);
+      AEInstallEventHandler(kCoreEventClass, kAEPrintDocuments, pdocUPP, 0L, false);
+      quitUPP = NewAEEventHandlerUPP(AEQuitApplication);
+      AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, quitUPP, 0L, false);
+    }
   
   current_foreground.red=255;
   current_foreground.green=255;
@@ -231,7 +237,8 @@ void screen_main(void)
 	  BeginUpdate((WindowPtr)theEvent.message);
 	  EndUpdate((WindowPtr)theEvent.message);
 	case kHighLevelEvent:
-	  AEProcessAppleEvent(&theEvent);
+	  if (sysv>0x6FF)
+	    AEProcessAppleEvent(&theEvent);
 	  break;
 	}
     }

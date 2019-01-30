@@ -63,8 +63,8 @@ resource 'SIZE' (-1) {
 	reserved,
 	reserved,
 	reserved,
-	100 * 1024,
-	100 * 1024
+	256 * 1024,
+	256 * 1024
 };
 
 data 'ICN#' (128, purgeable) {
