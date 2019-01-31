@@ -15,6 +15,7 @@
 #include "protocol.h"
 #include "io.h"
 #include "keyboard.h"
+#include "touch.h"
 
 #define true 1
 #define false 0
@@ -109,7 +110,7 @@ void screen_init(void)
   
   screenRect=qd.screenBits.bounds;
   windowRect.left=0;
-  windowRect.right=511;
+  windowRect.right=512;
 
   /* Set window size depending on screen size. */
   if (screenRect.bottom < 468)
@@ -199,6 +200,32 @@ void screen_menu_command(long menu_command)
 }
 
 /**
+ * screen_handle_touch(where) - Handle touch events
+ */
+void screen_handle_touch(Point* where)
+{
+  padPt temp;
+  SetPort(win);
+  GlobalToLocal(where);
+  temp.x = ((long)where->h * PLATOSize.x) / windowWidth;
+  temp.y = (PLATOSize.y - 1) - (((long)where->v * PLATOSize.y) /
+				windowHeight);
+  
+  touch_main(&temp);
+}
+
+/**
+ * screen_show_cursor - Hide mouse cursor
+ */
+void screen_show_cursor(padBool show)
+{
+  if (show==padT)
+    ShowCursor();
+  else if (show==padF)
+    ObscureCursor();
+}
+
+/**
  * screen_main(void)
  */
 void screen_main(void)
@@ -224,7 +251,10 @@ void screen_main(void)
 	      screen_menu_command(MenuSelect(theEvent.where));
 	      break;
 	    case inContent:
-	      SelectWindow(currentWindow);
+	      if (FrontWindow()!=currentWindow)
+		SelectWindow(currentWindow);
+	      else
+		screen_handle_touch(&theEvent.where);
 	      break;
 	    case inSysWindow:
 	      SystemClick(&theEvent,currentWindow);
@@ -232,6 +262,7 @@ void screen_main(void)
 	    }
 	case keyDown:
 	case autoKey:
+	  screen_show_cursor(padF);
 	  keyboard_main(&theEvent);
 	  break;
 	case updateEvt:

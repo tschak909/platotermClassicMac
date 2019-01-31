@@ -27,6 +27,10 @@ void screen_update_menus(void);
  */
 void screen_menu_command(long menu_command);
 
+/**
+ * screen_show_cursor - Hide mouse cursor
+ */
+void screen_show_cursor(padBool show);
 
 /**
  * screen_main(void)

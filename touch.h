@@ -22,7 +22,7 @@ padBool touch_lmb(void);
 /**
  * Get mouse position, and if LMB pressed, send touch event.
  */
-void touch_main(void);
+void touch_main(padPt* coord);
 
 /**
  * touch done

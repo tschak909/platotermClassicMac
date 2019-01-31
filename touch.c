@@ -21,14 +21,18 @@ void touch_init(void)
  */
 void touch_allow(padBool allow)
 {
+  isAllowed=allow;
+  if (isAllowed==padT)
+    screen_show_cursor(padT);
+  else
+    screen_show_cursor(padF);
 }
 
-padBool touch_lmb(void)
+void touch_main(padPt* Coord)
 {
-}
-
-void touch_main(void)
-{
+  if (isAllowed==padF)
+    return;
+  Touch(Coord);
 }
 
 /**
