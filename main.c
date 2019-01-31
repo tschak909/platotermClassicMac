@@ -36,5 +36,6 @@ void main(void)
       screen_main(); /* keyboard_main() and touch_main() are called in here. */
       io_main();
     }
+  done();
 }
 

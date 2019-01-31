@@ -87,7 +87,7 @@ void terminal_set_tty(void)
   CurMem=M0;
   CurMode=ModeRewrite;
   CharWide=8;
-  CharHigh=16;
+  /* CharHigh=16; */
   TTYLoc.x = 0;        
   TTYLoc.y = 495;      
 }

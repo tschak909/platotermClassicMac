@@ -43,6 +43,7 @@ int windowHeight;
 static AEEventHandlerUPP        oappUPP, odocUPP, pdocUPP, quitUPP;
 extern unsigned char running;
 static long sysv;
+extern void done(void);
 
 /* Apple Event Handler callbacks */
 
@@ -189,7 +190,7 @@ void screen_menu_command(long menu_command)
         {
 
 	case 1:
-	  ExitToShell();
+	  done();
 	  break;
         }
     }
@@ -273,6 +274,7 @@ void screen_wait(void)
  */
 void screen_beep(void)
 {
+  SysBeep(5);
 }
 
 /**
@@ -650,4 +652,5 @@ void screen_paint(padPt* Coord)
  */
 void screen_done(void)
 {
+  ExitToShell();
 }

@@ -1,5 +1,6 @@
 #include <Devices.h>
 #include <Serial.h>
+#include <OSUtils.h>
 #include "io.h"
 #include "protocol.h"
 #include "terminal.h"
@@ -16,6 +17,7 @@ short driverIn;
 short driverOut;
 SerShk handshake;
 Ptr serial_buffer;
+CntrlParam paramBlock;
 
 void io_init(void)
 {
@@ -25,7 +27,7 @@ void io_init(void)
     done();
 
   handshake.fXOn=0;
-  handshake.fCTS=0;
+  handshake.fCTS=1;
   handshake.errs=0;
   handshake.evts=0;
   handshake.fInX=0;
@@ -34,10 +36,15 @@ void io_init(void)
   SerReset(driverOut,baud57600+stop10+noParity+data8);
   serial_buffer=NewPtr(SERIAL_BUFFER_SIZE);
 
-  if (serial_buffer!=noErr)
-    done();
+  /* if (serial_buffer!=noErr) */
+  /*   done(); */
 
-  SerSetBuf(driverIn,serial_buffer,SERIAL_BUFFER_SIZE);  
+  SerSetBuf(driverIn,serial_buffer,SERIAL_BUFFER_SIZE);
+  paramBlock.ioCRefNum=driverIn;
+  paramBlock.csCode=kSERDHandshakeRS232;
+  PBControl((ParmBlkPtr)&paramBlock,false);
+  paramBlock.csCode=kSERDAssertDTR;
+  PBControl((ParmBlkPtr)&paramBlock,false);
 }
 
 void io_send_byte(unsigned char b)
@@ -81,6 +88,11 @@ void io_set_baud(int baud)
  */
 void io_hang_up(void)
 {
+  paramBlock.csCode=kSERDNegateDTR;
+  PBControl((ParmBlkPtr)&paramBlock,false);    
+  Delay(100,NULL);
+  paramBlock.csCode=kSERDAssertDTR;
+  PBControl((ParmBlkPtr)&paramBlock,false);  
 }
 
 /**
@@ -108,6 +120,7 @@ void io_done()
 {
   if (serial_buffer!=NULL)
     {
+      io_hang_up();
       SerSetBuf(driverIn,NULL,0);
       DisposePtr(serial_buffer);
       serial_buffer=NULL;

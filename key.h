@@ -14,7 +14,7 @@ int key_to_pkey[]={
     PKEY_NOKEY, /* 0x05 CTRL-E */
     PKEY_NOKEY, /* 0x06 CTRL-F */
     PKEY_NOKEY, /* 0x07 CTRL-G */
-    PKEY_NOKEY, /* 0x08 CTRL-H */
+    PKEY_ERASE, /* 0x08 CTRL-H */
     PKEY_TAB, /* 0x09 CTRL-I */
     PKEY_NOKEY, /* 0x0a CTRL-J */
     PKEY_NOKEY, /* 0x0b CTRL-K */
