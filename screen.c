@@ -155,6 +155,21 @@ void screen_init(void)
 }
 
 /**
+ * screen_about_dialog() - Do dialog box
+ */
+void screen_about_dialog(void)
+{
+  DialogPtr dlg = GetNewDialog(128,0,(WindowPtr)-1);
+  short item;
+
+  while (item != 6)
+    {
+      ModalDialog(NULL, &item);
+    }
+  DisposeDialog(dlg);
+}
+
+/**
  * screen_update_menus() - Update menu state
  */
 void screen_update_menus(void)
@@ -174,6 +189,7 @@ void screen_menu_command(long menu_command)
     {
       if(menuItem == 1)
 	{
+	  screen_about_dialog();
 	}
       else
         {
