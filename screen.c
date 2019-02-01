@@ -186,7 +186,7 @@ void screen_menu_command(long menu_command)
       switch(menuItem)
         {
 
-	case 1:
+	case 5:
 	  done();
 	  break;
         }
@@ -614,65 +614,65 @@ void screen_paint(padPt* Coord)
  */
 void screen_mono_paint(padPt* Coord)
 {
-  static unsigned short xStack[512];
-  static unsigned short yStack[512];
-  int x=screen_scale_x(Coord->x);
-  int y=screen_scale_y(Coord->y);
-  unsigned char stackentry = 1;
-  unsigned short spanAbove, spanBelow;
-  unsigned char oldColor=GetPixel(x,y);
+/*   static unsigned short xStack[512]; */
+/*   static unsigned short yStack[512]; */
+/*   int x=screen_scale_x(Coord->x); */
+/*   int y=screen_scale_y(Coord->y); */
+/*   unsigned char stackentry = 1; */
+/*   unsigned short spanAbove, spanBelow; */
+/*   unsigned char oldColor=GetPixel(x,y); */
  
-  if (oldColor==1)
-    return;
+/*   if (oldColor==1) */
+/*     return; */
   
-  do
-    {
-      unsigned short startx;
-      while (x > 0 && GetPixel(x-1,y)==oldColor)
-        --x;
+/*   do */
+/*     { */
+/*       unsigned short startx; */
+/*       while (x > 0 && GetPixel(x-1,y)==oldColor) */
+/*         --x; */
 
-      spanAbove = spanBelow = false;
-      startx=x;
+/*       spanAbove = spanBelow = false; */
+/*       startx=x; */
 
       
-      while(GetPixel(x,y)==oldColor)
-        {
-          if (y < (512))
-            {
-	      unsigned char belowColor=GetPixel(x,y);
-              if (!spanBelow  && belowColor==oldColor)
-                {
-                  xStack[stackentry]  = x;
-                  yStack[stackentry]  = y+1;
-                  ++stackentry;
-                  spanBelow = true;
-                }
-              else if (spanBelow && belowColor!=oldColor)
-                spanBelow = false;
-            }
+/*       while(GetPixel(x,y)==oldColor) */
+/*         { */
+/*           if (y < (512)) */
+/*             { */
+/* 	      unsigned char belowColor=GetPixel(x,y); */
+/*               if (!spanBelow  && belowColor==oldColor) */
+/*                 { */
+/*                   xStack[stackentry]  = x; */
+/*                   yStack[stackentry]  = y+1; */
+/*                   ++stackentry; */
+/*                   spanBelow = true; */
+/*                 } */
+/*               else if (spanBelow && belowColor!=oldColor) */
+/*                 spanBelow = false; */
+/*             } */
 
-          if (y > 0)
-            {
-	      unsigned char aboveColor=GetPixel(x,y);
-              if (!spanAbove  && aboveColor==oldColor)
-                {
-                  xStack[stackentry]  = x;
-                  yStack[stackentry]  = y-1;
-                  ++stackentry;
-                  spanAbove = true;
-                }
-              else if (spanAbove && aboveColor!=oldColor)
-                spanAbove = false;
-            }
-          ++x;
-        }
-      MoveTo(startx,y);
-      LineTo(x-1,y);
-      --stackentry;
-      x = xStack[stackentry];
-      y = yStack[stackentry];
-    }
-  while (stackentry);
+/*           if (y > 0) */
+/*             { */
+/* 	      unsigned char aboveColor=GetPixel(x,y); */
+/*               if (!spanAbove  && aboveColor==oldColor) */
+/*                 { */
+/*                   xStack[stackentry]  = x; */
+/*                   yStack[stackentry]  = y-1; */
+/*                   ++stackentry; */
+/*                   spanAbove = true; */
+/*                 } */
+/*               else if (spanAbove && aboveColor!=oldColor) */
+/*                 spanAbove = false; */
+/*             } */
+/*           ++x; */
+/*         } */
+/*       MoveTo(startx,y); */
+/*       LineTo(x-1,y); */
+/*       --stackentry; */
+/*       x = xStack[stackentry]; */
+/*       y = yStack[stackentry]; */
+/*     } */
+/*   while (stackentry); */
 }
 
 /**

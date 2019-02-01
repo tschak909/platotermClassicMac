@@ -6,7 +6,7 @@
 
 type 'PLTO' as 'STR ';
 resource 'PLTO' (0, purgeable) {
-	 "PLATOTerm 0.1"
+	 "PLATOTerm 0.5"
 };
 
 resource 'MENU' (128) {
@@ -22,8 +22,12 @@ resource 'MENU' (128) {
 resource 'MENU' (129) {
     129, textMenuProc;
     allEnabled, enabled;
-    "File";
+    "Terminal";
     {
+	"PLATO Mode", noIcon, "P", noMark, plain;
+	"TTY Mode", noIcon, "T", noMark, plain;
+	"-",noIcon, noKey, noMark, plain;
+	"Hang Up",noIcon, "H", noMark, plain;
         "Quit", noIcon, "Q", noMark, plain;
     }
 };
@@ -42,8 +46,23 @@ resource 'MENU' (130) {
     }
 };
 
+resource 'MENU' (131) {
+	 131, textMenuProc;
+	 0, enabled;
+	 "Settings";
+	{
+		"300 baud", noIcon, "3", noMark, plain;
+		"1200 baud", noIcon, "1", noMark, plain;
+		"2400 baud", noIcon, "2", noMark, plain;
+		"9600 baud", noIcon, "6", noMark, plain;
+		"19200 baud", noIcon, "9", noMark, plain;
+		"38400 baud", noIcon, "8", noMark, plain;
+		"57600 baud", noIcon, "7", noMark, plain;
+	}
+};
+
 resource 'MBAR' (128) {
-    { 128, 129, 130 };
+    { 128, 129, 130, 131 };
 };
 
 resource 'SIZE' (-1) {
