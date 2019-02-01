@@ -119,9 +119,14 @@ void screen_foreground(padRGB* theColor);
 void screen_background(padRGB* theColor);
 
 /**
- * screen_paint - Called to paint at location.
+ * color_screen_paint - Called to paint at location.
  */
-void screen_paint(padPt* Coord);
+void screen_color_paint(padPt* Coord);
+
+/**
+ * mono_screen_paint - Called to paint at location.
+ */
+void screen_mono_paint(padPt* Coord);
 
 /**
  * screen_show_status(msg)

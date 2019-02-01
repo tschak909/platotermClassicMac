@@ -82,7 +82,7 @@ void screen_init(void)
   TEInit();
   InitDialogs(NULL);
   InitCursor();
-
+  
   /* Attach Apple Event handler callbacks */
   Gestalt('sysv',&sysv);
   if (sysv>0x6FF)
@@ -146,13 +146,9 @@ void screen_init(void)
     is_mono=true;
   
   if (is_mono==true)
-    {
-      win = NewWindow(NULL, &windowRect, "\pPLATOTerm", true, 0, (WindowPtr)-1, false, 0);
-    }
+    win = NewWindow(NULL, &windowRect, "\pPLATOTerm", true, 0, (WindowPtr)-1, false, 0);
   else
-    {
-      win = NewCWindow(NULL, &windowRect, "\pColor PLATOTerm", true, 0, (WindowPtr)-1, false, 0);      
-    }
+    win = NewCWindow(NULL, &windowRect, "\pColor PLATOTerm", true, 0, (WindowPtr)-1, false, 0);      
 
   SetPort(win);
   
@@ -607,6 +603,83 @@ unsigned char screen_pixel_colors_same(RGBColor* firstColor, RGBColor* secondCol
  */
 void screen_paint(padPt* Coord)
 {
+  if (is_mono==1)
+    screen_mono_paint(Coord);
+  else
+    screen_color_paint(Coord);
+}
+
+/**
+ * color_screen_paint - Called to paint at location.
+ */
+void screen_mono_paint(padPt* Coord)
+{
+  static unsigned short xStack[512];
+  static unsigned short yStack[512];
+  int x=screen_scale_x(Coord->x);
+  int y=screen_scale_y(Coord->y);
+  unsigned char stackentry = 1;
+  unsigned short spanAbove, spanBelow;
+  unsigned char oldColor=GetPixel(x,y);
+ 
+  if (oldColor==1)
+    return;
+  
+  do
+    {
+      unsigned short startx;
+      while (x > 0 && GetPixel(x-1,y)==oldColor)
+        --x;
+
+      spanAbove = spanBelow = false;
+      startx=x;
+
+      
+      while(GetPixel(x,y)==oldColor)
+        {
+          if (y < (512))
+            {
+	      unsigned char belowColor=GetPixel(x,y);
+              if (!spanBelow  && belowColor==oldColor)
+                {
+                  xStack[stackentry]  = x;
+                  yStack[stackentry]  = y+1;
+                  ++stackentry;
+                  spanBelow = true;
+                }
+              else if (spanBelow && belowColor!=oldColor)
+                spanBelow = false;
+            }
+
+          if (y > 0)
+            {
+	      unsigned char aboveColor=GetPixel(x,y);
+              if (!spanAbove  && aboveColor==oldColor)
+                {
+                  xStack[stackentry]  = x;
+                  yStack[stackentry]  = y-1;
+                  ++stackentry;
+                  spanAbove = true;
+                }
+              else if (spanAbove && aboveColor!=oldColor)
+                spanAbove = false;
+            }
+          ++x;
+        }
+      MoveTo(startx,y);
+      LineTo(x-1,y);
+      --stackentry;
+      x = xStack[stackentry];
+      y = yStack[stackentry];
+    }
+  while (stackentry);
+}
+
+/**
+ * color_screen_paint - Called to paint at location.
+ */
+void screen_color_paint(padPt* Coord)
+{
   static unsigned short xStack[512];
   static unsigned short yStack[512];
   int x=screen_scale_x(Coord->x);
@@ -615,9 +688,6 @@ void screen_paint(padPt* Coord)
   unsigned short spanAbove, spanBelow;
   RGBColor oldColor;
   
-  if (is_mono==1)
-    return;
-
   GetCPixel(x,y,&oldColor);
 
   if ((oldColor.red == current_foreground.red) &&
