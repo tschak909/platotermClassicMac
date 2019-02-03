@@ -18,6 +18,7 @@ add_application(PLATOTERM
   terminal.c
   touch.c
   trace.c
+  config.c
   CREATOR "PLTO"
   )
 target_link_libraries(PLATOTERM "-lm")

@@ -48,10 +48,10 @@ resource 'MENU' (130) {
 
 resource 'MENU' (131) {
 	 131, textMenuProc;
-	 0, enabled;
+	 allEnabled, enabled;
 	 "Settings";
 	{
-		"300 baud", noIcon, "3", noMark, plain;
+		"300 baud", noIcon, "3", noMark, Plain;
 		"1200 baud", noIcon, "1", noMark, plain;
 		"2400 baud", noIcon, "2", noMark, plain;
 		"9600 baud", noIcon, "6", noMark, plain;

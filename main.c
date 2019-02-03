@@ -5,7 +5,7 @@
 #include "keyboard.h"
 #include "touch.h"
 #include "splash.h"
-#include "help.h"
+#include "config.h"
 
 #define true 1
 #define false 0
@@ -22,14 +22,15 @@ void done(void)
 
 void main(void)
 {
+  config_init();
   screen_init();
   touch_init();
-  help_init();
   NoEcho=padT;
   ShowPLATO(splash,sizeof(splash));
   NoEcho=padF;
   terminal_initial_position();
   io_init();
+  screen_update_menus();
   running=true;
   while (running==true)
     {

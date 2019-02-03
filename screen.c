@@ -16,6 +16,8 @@
 #include "io.h"
 #include "keyboard.h"
 #include "touch.h"
+#include "config.h"
+#include "terminal.h"
 
 #define true 1
 #define false 0
@@ -45,6 +47,7 @@ static AEEventHandlerUPP        oappUPP, odocUPP, pdocUPP, quitUPP;
 extern unsigned char running;
 static long sysv;
 extern void done(void);
+extern ConfigInfo config;
 
 /* Apple Event Handler callbacks */
 
@@ -174,6 +177,50 @@ void screen_about_dialog(void)
  */
 void screen_update_menus(void)
 {
+  int i;
+
+  /* Update PLATO/TTY mode selector. */
+  CheckItem(GetMenuHandle(129),1,false);
+  CheckItem(GetMenuHandle(129),2,false);
+
+  if (TTY)
+    {
+      CheckItem(GetMenuHandle(129),2,true);
+    }
+  else
+    {
+      CheckItem(GetMenuHandle(129),1,true);
+    }
+  
+  /* Update baud rate selector. */
+  for (i=1;i<8;i++)
+    {
+      CheckItem(GetMenuHandle(131),i,false);
+    }
+  switch (config.baud)
+    {
+    case 300:
+      CheckItem(GetMenuHandle(131),1,true);
+      break;
+    case 1200:
+      CheckItem(GetMenuHandle(131),2,true);
+      break;
+    case 2400:
+      CheckItem(GetMenuHandle(131),3,true);
+      break;
+    case 9600:
+      CheckItem(GetMenuHandle(131),4,true);
+      break;
+    case 19200:
+      CheckItem(GetMenuHandle(131),5,true);
+      break;
+    case 38400:
+      CheckItem(GetMenuHandle(131),6,true);
+      break;
+    case 57600:
+      CheckItem(GetMenuHandle(131),7,true);
+      break;
+    }
 }
 
 /**
@@ -201,14 +248,49 @@ void screen_menu_command(long menu_command)
     {
       switch(menuItem)
         {
-
+	case 1:
+	  terminal_set_plato();
+	  break;
+	case 2:
+	  terminal_set_tty();
+	  break;
+	case 4:
+	  io_hang_up();
+	  break;
 	case 5:
 	  done();
 	  break;
         }
     }
-  
+  else if (menuID == 131)
+    {
+      switch(menuItem)
+	{
+	case 1:
+	  io_set_baud(300);
+	  break;
+	case 2:
+	  io_set_baud(1200);
+	  break;
+	case 3:
+	  io_set_baud(2400);
+	  break;
+	case 4:
+	  io_set_baud(9600);
+	  break;
+	case 5:
+	  io_set_baud(19200);
+	  break;
+	case 6:
+	  io_set_baud(38400);
+	  break;
+	case 7:
+	  io_set_baud(57600);
+	  break;
+	}
+    }
   HiliteMenu(0);
+  screen_update_menus();
 }
 
 /**

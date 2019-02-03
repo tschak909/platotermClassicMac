@@ -4,6 +4,7 @@
 #include "io.h"
 #include "protocol.h"
 #include "terminal.h"
+#include "config.h"
 
 #define true 1
 #define false 0
@@ -11,6 +12,7 @@
 #define SERIAL_BUFFER_SIZE 16000
 
 extern unsigned char trace_active;
+extern ConfigInfo config;
 extern void done(void);
 
 short driverIn;
@@ -33,18 +35,10 @@ void io_init(void)
   handshake.fInX=0;
 
   SerHShake(driverIn,&handshake);
-  SerReset(driverOut,baud57600+stop10+noParity+data8);
+  io_set_baud(config.baud);
   serial_buffer=NewPtr(SERIAL_BUFFER_SIZE);
 
-  /* if (serial_buffer!=noErr) */
-  /*   done(); */
-
   SerSetBuf(driverIn,serial_buffer,SERIAL_BUFFER_SIZE);
-  paramBlock.ioCRefNum=driverIn;
-  paramBlock.csCode=kSERDHandshakeRS232;
-  PBControl((ParmBlkPtr)&paramBlock,false);
-  paramBlock.csCode=kSERDAssertDTR;
-  PBControl((ParmBlkPtr)&paramBlock,false);
 }
 
 void io_send_byte(unsigned char b)
@@ -81,6 +75,13 @@ void io_send_string(const char* str, int len)
  */
 void io_set_baud(int baud)
 {
+  SerReset(driverOut,baud+stop10+noParity+data8);
+  paramBlock.ioCRefNum=driverIn;
+  paramBlock.csCode=kSERDHandshakeRS232;
+  PBControl((ParmBlkPtr)&paramBlock,false);
+  paramBlock.csCode=kSERDAssertDTR;
+  PBControl((ParmBlkPtr)&paramBlock,false);
+  config.baud=baud;
 }
 
 /**
